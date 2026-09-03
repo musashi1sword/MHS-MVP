@@ -1,0 +1,25 @@
+# Optional: PostgreSQL + Redis for running the backend on the spec stack.
+# The app runs fine without this (SQLite + in-memory channel layer) for the demo.
+#
+#   docker compose up -d
+#   export DATABASE_URL=postgres://mhs:mhs@localhost:5432/mhs
+#   export REDIS_URL=redis://localhost:6379/0
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mhs
+      POSTGRES_PASSWORD: mhs
+      POSTGRES_DB: mhs
+    ports:
+      - "5432:5432"
+    volumes:
+      - mhs_pg:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  mhs_pg:

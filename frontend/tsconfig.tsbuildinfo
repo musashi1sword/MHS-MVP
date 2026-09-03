@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/auth.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/api/types.ts","./src/pages/Login.tsx","./src/pages/MetricsDashboard.tsx","./src/pages/PatientBooking.tsx","./src/pages/PharmacyBoard.tsx","./src/pages/ProviderConsole.tsx","./src/pages/Visit.tsx","./src/video/useVideoRoom.ts"],"version":"5.9.3"}

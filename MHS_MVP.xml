@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProjectDevelopmentPrompt>
+    <Meta>
+        <ProjectName>MHS-MVP (Mwafrika Health Services)</ProjectName>
+        <Description>Investor-ready MVP for a digitally enabled healthcare operating network for East Africa. Integrates digital access, physical healthcare delivery, pharmacy, diagnostics, specialist networks, chronic-care management, and clinical knowledge within a single ecosystem.</Description>
+        <Goal>Build the MVP to execute a 7-minute investor demo (Book -> Intake -> Video -> Rx -> Pharmacy -> Metrics).</Goal>
+    </Meta>
+
+    <BusinessSpecifications>
+        <ClinicNames>
+            <HoldingCompany>Africanna</HoldingCompany>
+            <HoldingCompany>Clinician</HoldingCompany>
+            <Clinic>Africanna Health Center - Westlands</Clinic>
+            <Clinic>Mwafrika Clinic - Kibera</Clinic>
+            <Clinic>The Clinician Clinic - Kisumu</Clinic>
+        </ClinicNames>
+        <ContractModel>
+            <OverseasSpecialists>Standard non-US Independent Contractor (IC) agreements and international wire transfers.</OverseasSpecialists>
+        </ContractModel>
+    </BusinessSpecifications>
+
+    <TechnicalSpecifications>
+        <TechStack>
+            <Backend>
+                <Language>Python (Django) or Node.js (NestJS)</Language>
+                <Architecture>Microservices (Modular Monolith) deployed on AWS (EKS/ECS).</Architecture>
+                <Databases>
+                    <Primary>PostgreSQL</Primary>
+                    <Cache>Redis</Cache>
+                    <Storage>S3-compatible bucket</Storage>
+                </Databases>
+                <AsyncQueue>Celery / BullMQ</AsyncQueue>
+            </Backend>
+            <Frontend>
+                <WebDashboard>React.js with TypeScript</WebDashboard>
+                <MobileApp>Cross-platform Flutter or React Native</MobileApp>
+            </Frontend>
+            <ThirdPartyIntegrations>
+                <Payments>M-Pesa Daraja API, Airtel Money API, Stripe (for IC payouts)</Payments>
+                <Communications>
+                    <VideoAudio>Dual-mode architecture: Custom WebRTC (COTURN/STUN) AND Managed API (AWS Chime SDK or Twilio Video) abstracted behind a single interface.</VideoAudio>
+                    <Async>WebSockets / RESTful API for Store-and-Forward messaging.</Async>
+                </Communications>
+                <TelecomGateway>
+                    <SMSVoice>Twilio API</SMSVoice>
+                    <USSD>Mock adapter for Direct Telecom APIs (Safaricom/MTN). No hard dependency on direct API keys for MVP demo.</USSD>
+                </TelecomGateway>
+                <FileSecurity>AWS KMS encryption</FileSecurity>
+            </ThirdPartyIntegrations>
+        </TechStack>
+    </TechnicalSpecifications>
+
+    <MVP_Modules>
+        <Module id="UserAuthentication">...</Module>
+        <Module id="Patient_CHW_Access">...</Module>
+        <Module id="ClinicalWorkflowEngine">
+            <Features>
+                <Feature>AI-assisted triage (Mocked logic for demo)</Feature>
+                <Feature>Appointment/Queue management</Feature>
+                <Feature>Low-bandwidth Audio/Video (Dual-mode)</Feature>
+            </Features>
+        </Module>
+        <Module id="E_Prescription_Pharmacy">
+            <Features>
+                <Feature>E-Prescription generation with Allergy/Interaction alerts</Feature>
+                <Feature>Routing to MHS-affiliated pharmacies (Africanna Health Center, The Clinician Clinic)</Feature>
+                <Feature>Pharmacy pickup/delivery status tracking</Feature>
+            </Features>
+        </Module>
+        <Module id="Payments_Wallet">...</Module>
+        <Module id="Specialist_CME_Network">(Deferred to Phase 2)</Module>
+    </MVP_Modules>
+
+    <InvestorDemoSpecification>
+        <Setup>
+            <Accounts>
+                <Patient>Test Patient: "Jane Doe" (has allergies, insurance, medication history)</Patient>
+                <Provider>Test Clinician: "Dr. John Mwangi" (has open calendar slot)</Provider>
+                <Pharmacy>Test Pharmacy: Africanna Health Center - Westlands (mapped to patient address)</Pharmacy>
+            </Accounts>
+            <Data>
+                <SyntheticData>Ensure all data is clearly synthetic/test data, no real PHI.</SyntheticData>
+                <Formulary>Include 3-5 sample drugs. Include one that triggers an Allergy/Interaction alert.</Formulary>
+            </Data>
+            <Fallback>Pre-recorded screen-capture backup of the full flow, in case of live network failure.</Fallback>
+        </Setup>
+        
+        <Runbook>
+            <Step time="0:00-0:30">Setup Line: State plainly this is a live product, not a mockup.</Step>
+            <Step time="0:30-2:00">Booking + Intake: Patient logs a symptom, picks a same-day slot, completes quick intake.</Step>
+            <Step time="2:00-4:00">Video Visit: Provider joins, brief scripted exchange takes place, provider writes a note.</Step>
+            <Step time="4:00-5:00">Prescription: Provider e-prescribes; show the allergy/interaction check firing (demonstrating safety layer).</Step>
+            <Step time="5:00-6:00">Pharmacy Handoff: Script auto-routes to nearest pharmacy; patient receives status update (Ready for Pickup).</Step>
+            <Step time="6:00-7:00">Close: Cut to the Metrics Slide - transition into the pitch discussion.</Step>
+        </Runbook>
+
+        <MetricsDashboard>
+            <Purpose>Built to show real (or realistic) numbers immediately after the demo.</Purpose>
+            <Metrics>
+                <Metric name="Funnel">Booking → Completed Visit → Prescription Issued → Filled (Conversion rates)</Metric>
+                <Metric name="Speed">Average time from booking to seeing a provider; prescription to pharmacy pickup.</Metric>
+                <Metric name="UnitEconomics">Cost per consult, revenue per consult, pharmacy margin share.</Metric>
+                <Metric name="Retention">% of patients who return within 90 days.</Metric>
+                <Metric name="MarketWedge">Why video + pharmacy beats point solutions (full loop ownership).</Metric>
+            </Metrics>
+        </MetricsDashboard>
+
+        <EdgeCaseScript>
+            <Scenario>Provider tries to prescribe a drug the patient is allergic to; the system flashes a warning and blocks the prescription until overridden.</Scenario>
+        </EdgeCaseScript>
+    </InvestorDemoSpecification>
+
+    <DatabaseSchema>
+        <Table name="Users">...</Table>
+        <Table name="Clinics">
+            <Data>Africanna Health Center - Westlands, Mwafrika Clinic - Kibera, The Clinician Clinic - Kisumu</Data>
+        </Table>
+        <Table name="Appointments">...</Table>
+        <Table name="Consultations">...</Table>
+        <Table name="Prescriptions">
+            <Columns>PrescriptionID, ConsultationID, PharmacyID, Status (Pending/Dispensed), MedicationList, AllergenAlertTriggered</Columns>
+        </Table>
+        <Table name="Transactions">...</Table>
+    </DatabaseSchema>
+
+    <API_Design>
+        <Endpoint method="POST" path="/api/v1/demo/seed" description="Seed the database with synthetic data for the investor demo."/>
+        <Endpoint method="POST" path="/api/v1/consultations/start" description="Initiate WebRTC (Dual-mode) session."/>
+        <Endpoint method="POST" path="/api/v1/prescriptions/check-allergy" description="Endpoint to trigger the allergy interaction check."/>
+        <Endpoint method="GET" path="/api/v1/dashboard/metrics" description="Fetch the pre-calculated metrics for the investor slide."/>
+        <!-- Other standard endpoints (Auth, Payments, etc.) -->
+    </API_Design>
+
+    <NonFunctionalRequirements>
+        <Requirement name="Performance">No visible loading spinners during the investor demo. Audio latency < 300ms.</Requirement>
+        <Requirement name="Reliability">Total system resilience for the live demo; must not crash under stress.</Requirement>
+        <Requirement name="Security">End-to-end encryption. Strict GDPR/Kenyan DPA compliance.</Requirement>
+        <Requirement name="Scalability">Auto-scaling on AWS. Must handle 10,000 concurrent users.</Requirement>
+    </NonFunctionalRequirements>
+
+    <MVP_Hypothesis_Exit_Criteria>
+        <Pass>
+            <Criteria>Demo completed successfully within 7 minutes.</Criteria>
+            <Criteria>At least 70% of eligible consultations reach completion.</Criteria>
+            <Criteria>Provider satisfaction/NPS ≥ 7/10.</Criteria>
+            <Criteria>One viable paying or funded customer segment demonstrated.</Criteria>
+        </Pass>
+        <Fail>
+            <Criteria>Allergy alert fails to fire.</Criteria>
+            <Criteria>Pharmacy status does not update in real-time.</Criteria>
+            <Criteria>Network failure causes full demo crash without backup.</Criteria>
+        </Fail>
+    </MVP_Hypothesis_Exit_Criteria>
+</ProjectDevelopmentPrompt>
