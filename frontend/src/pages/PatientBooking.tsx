@@ -59,14 +59,24 @@ export default function PatientBooking() {
           <label>What's going on?</label>
           <textarea value={symptom} onChange={(e) => setSymptom(e.target.value)} />
           <label>Same-day slots</label>
-          <select value={slotId ?? ""} onChange={(e) => setSlotId(Number(e.target.value))}>
+          <select
+            value={slotId ?? ""}
+            onChange={(e) => setSlotId(Number(e.target.value))}
+            disabled={slots.length === 0}
+          >
+            {slots.length === 0 && <option value="">No open slots available</option>}
             {slots.map((s) => (
               <option key={s.id} value={s.id}>
                 {new Date(s.start).toLocaleString()} — {s.provider_name} ({s.clinic_name})
               </option>
             ))}
           </select>
-          {slots.length === 0 && <p className="muted">No open slots — seed demo data first.</p>}
+          {slots.length === 0 && (
+            <p className="muted">
+              No open slots — click <strong>Seed demo data</strong> on the login screen to refresh
+              today's slots.
+            </p>
+          )}
           <button style={{ marginTop: 14 }} onClick={book} disabled={busy || !slotId}>
             Book appointment
           </button>

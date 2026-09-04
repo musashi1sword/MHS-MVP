@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import { useAuth } from "../auth";
 import type { Consultation, JoinInfo } from "../api/types";
 import { useVideoRoom } from "../video/useVideoRoom";
+import { DoctorAvatar } from "../video/DoctorAvatar";
 
 export default function Visit() {
   const { appointmentId } = useParams();
@@ -13,8 +14,19 @@ export default function Visit() {
   const [mode, setMode] = useState<"webrtc" | "managed">("webrtc");
   const [starting, setStarting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [simulateDoctor, setSimulateDoctor] = useState(false);
 
   const room = useVideoRoom(join);
+
+  // A real remote video stream only ever exists on the custom WebRTC path;
+  // managed (Twilio/Chime) mode surfaces a mock token + local preview, so the
+  // remote slot never carries an incoming stream in the demo.
+  const remoteLive = join?.provider === "webrtc" && room.state === "connected";
+  const callEnded = room.state === "ended";
+  // Cover the remote slot with the doctor image whenever there is no incoming
+  // stream (always true for managed mode), or whenever demo mode is simulating
+  // one — but drop it the moment the call ends.
+  const showDoctor = !!join && !callEnded && (simulateDoctor || !remoteLive);
 
   const start = async () => {
     setStarting(true);
@@ -87,6 +99,7 @@ export default function Visit() {
                 {join.provider === "managed" && (
                   <span className="pill">token issued {join.live ? "(live)" : "(mock)"}</span>
                 )}
+                {simulateDoctor && <span className="pill warn">doctor simulated</span>}
               </div>
               <button className="danger" onClick={room.hangUp}>
                 End call
@@ -97,13 +110,28 @@ export default function Visit() {
             <div className="grid cols-2" style={{ marginTop: 14 }}>
               <div>
                 <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>
-                  {join.provider === "managed" ? "You (managed preview)" : "Remote"}
+                  {callEnded
+                    ? "Call ended"
+                    : showDoctor
+                      ? simulateDoctor
+                        ? "Doctor (simulated)"
+                        : "Doctor"
+                      : join.provider === "managed"
+                        ? "You (managed preview)"
+                        : "Remote"}
                 </div>
-                {join.provider === "webrtc" ? (
-                  <video ref={room.remoteRef} autoPlay playsInline />
-                ) : (
-                  <video ref={room.localRef} autoPlay playsInline muted />
-                )}
+                <div className="video-frame">
+                  {join.provider === "webrtc" ? (
+                    <video ref={room.remoteRef} autoPlay playsInline />
+                  ) : (
+                    <video ref={room.localRef} autoPlay playsInline muted />
+                  )}
+                  {showDoctor && (
+                    <div className="video-frame__overlay">
+                      <DoctorAvatar simulated={simulateDoctor} />
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>
@@ -120,9 +148,15 @@ export default function Visit() {
               <button className="secondary" onClick={room.toggleCam}>
                 {room.camOn ? "Stop camera" : "Start camera"}
               </button>
-              {room.state === "waiting" && (
-                <span className="muted">Waiting for the other participant to join…</span>
-              )}
+              <label className="row" style={{ margin: 0 }}>
+                <input
+                  type="checkbox"
+                  style={{ width: "auto" }}
+                  checked={simulateDoctor}
+                  onChange={(e) => setSimulateDoctor(e.target.checked)}
+                />{" "}
+                Simulate Doctor (demo)
+              </label>
             </div>
           </div>
 

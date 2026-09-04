@@ -119,8 +119,10 @@ def seed_demo() -> dict:
         defaults={"specialty": "Internal Medicine", "license_number": "KMPDC-TEST-4821", "is_overseas_ic": False},
     )
 
-    # Open same-day slots for Dr. Mwangi.
-    ProviderSlot.objects.filter(provider=provider, start__gte=now).delete()
+    # Open same-day slots for Dr. Mwangi. Drop every unbooked slot first (past
+    # ones included) so re-seeding on a later day always yields fresh, bookable
+    # same-day slots instead of a stale/empty list.
+    ProviderSlot.objects.filter(provider=provider, is_booked=False).delete()
     base = now.replace(minute=0, second=0, microsecond=0)
     slots = []
     for offset in (1, 2, 3, 4):
@@ -135,16 +137,19 @@ def seed_demo() -> dict:
     made = 0
     for d in range(1, 8):
         when = now - timedelta(days=d, hours=2)
-        appt = Appointment.objects.create(
+        _, created = Appointment.objects.get_or_create(
             patient=patient, provider=provider, clinic=westlands,
-            scheduled_start=when, mode="video", status=AppointmentStatus.COMPLETED,
+            status=AppointmentStatus.COMPLETED,
             symptom_note="Follow-up on blood pressure control.",
-            created_at=when - timedelta(minutes=20),
-            queued_at=when - timedelta(minutes=12),
-            seen_at=when, completed_at=when + timedelta(minutes=14),
+            scheduled_start__date=when.date(),
+            defaults={
+                "scheduled_start": when, "mode": "video",
+                "created_at": when - timedelta(minutes=20),
+                "queued_at": when - timedelta(minutes=12),
+                "seen_at": when, "completed_at": when + timedelta(minutes=14),
+            },
         )
-        made += 1
-        _ = appt
+        made += int(created)
 
     return {
         "status": "seeded",

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../api/client";
+import { useToast, errorMessage } from "../components/Toast";
 import type {
   Appointment,
   Consultation,
@@ -28,6 +29,7 @@ export default function ProviderConsole() {
   const [rx, setRx] = useState<Prescription | null>(null);
   const [override, setOverride] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const toast = useToast();
 
   const loadQueue = () =>
     api.get<Appointment[]>("/appointments/queue").then(setQueue).catch(() => {});
@@ -45,24 +47,34 @@ export default function ProviderConsole() {
     setRx(null);
     setOverride("");
     setMsg(null);
-    const res = await api.post<{ consultation: Consultation }>("/consultations/start", {
-      appointment: appt.id,
-      mode: "video",
-    });
-    setConsultation(res.consultation);
-    setNote({
-      subjective: res.consultation.subjective,
-      objective: res.consultation.objective,
-      assessment: res.consultation.assessment,
-      plan: res.consultation.plan,
-    });
-    setDrafts([]);
+    try {
+      const res = await api.post<{ consultation: Consultation }>("/consultations/start", {
+        appointment: appt.id,
+        mode: "video",
+      });
+      setConsultation(res.consultation);
+      setNote({
+        subjective: res.consultation.subjective,
+        objective: res.consultation.objective,
+        assessment: res.consultation.assessment,
+        plan: res.consultation.plan,
+      });
+      setDrafts([]);
+    } catch (e) {
+      setActive(null);
+      toast.error(errorMessage(e, "Could not open the consultation."));
+    }
   };
 
   const saveNote = async () => {
     if (!consultation) return;
-    await api.patch(`/consultations/${consultation.id}/note`, note);
-    setMsg("Note saved.");
+    try {
+      await api.patch(`/consultations/${consultation.id}/note`, note);
+      setMsg("Note saved.");
+      toast.success("Note saved.");
+    } catch (e) {
+      toast.error(errorMessage(e, "Could not save the note."));
+    }
   };
 
   const addDraft = () => {
@@ -74,11 +86,15 @@ export default function ProviderConsole() {
 
   const runSafety = async () => {
     if (!active || medIds.length === 0) return;
-    const report = await api.post<SafetyReport>("/prescriptions/check-allergy", {
-      patient: active.patient,
-      medications: medIds,
-    });
-    setSafety(report);
+    try {
+      const report = await api.post<SafetyReport>("/prescriptions/check-allergy", {
+        patient: active.patient,
+        medications: medIds,
+      });
+      setSafety(report);
+    } catch (e) {
+      toast.error(errorMessage(e, "Safety check failed."));
+    }
   };
 
   // Live check whenever the medication set changes.
@@ -90,18 +106,23 @@ export default function ProviderConsole() {
 
   const createRx = async () => {
     if (!consultation) return;
-    const created = await api.post<Prescription>("/prescriptions", {
-      consultation: consultation.id,
-      fulfilment: "pickup",
-      items: drafts.map((d) => ({
-        medication: d.medicationId,
-        dose: d.dose,
-        frequency: d.frequency,
-        duration: d.duration,
-      })),
-    });
-    setRx(created);
-    setMsg("Prescription created (draft). Send it to route to the pharmacy.");
+    try {
+      const created = await api.post<Prescription>("/prescriptions", {
+        consultation: consultation.id,
+        fulfilment: "pickup",
+        items: drafts.map((d) => ({
+          medication: d.medicationId,
+          dose: d.dose,
+          frequency: d.frequency,
+          duration: d.duration,
+        })),
+      });
+      setRx(created);
+      setMsg("Prescription created (draft). Send it to route to the pharmacy.");
+      toast.success(`Prescription #${created.id} created (draft).`);
+    } catch (e) {
+      toast.error(errorMessage(e, "Could not create the prescription."));
+    }
   };
 
   const sendRx = async () => {
@@ -110,29 +131,42 @@ export default function ProviderConsole() {
       const sent = await api.post<Prescription>(`/prescriptions/${rx.id}/send`, {});
       setRx(sent);
       setMsg(`Routed to ${sent.pharmacy_name}. Status: ${sent.status}.`);
+      toast.success(`Sent to ${sent.pharmacy_name}. Status: ${sent.status}.`);
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
         setMsg("Blocked by the safety layer. Enter an override reason to proceed.");
+        toast.error("Blocked by the safety layer — enter an override reason to proceed.");
       } else {
         setMsg("Send failed.");
+        toast.error(errorMessage(e, "Could not send the prescription to the pharmacy."));
       }
     }
   };
 
   const applyOverride = async () => {
     if (!rx || !override.trim()) return;
-    await api.post(`/prescriptions/${rx.id}/override`, { reason: override });
-    setMsg("Override recorded. You can send now.");
-    await sendRx();
+    try {
+      await api.post(`/prescriptions/${rx.id}/override`, { reason: override });
+      setMsg("Override recorded. You can send now.");
+      toast.info("Override recorded.");
+      await sendRx();
+    } catch (e) {
+      toast.error(errorMessage(e, "Could not record the override."));
+    }
   };
 
   const completeVisit = async () => {
     if (!active) return;
-    await api.post(`/appointments/${active.id}/complete`, {});
-    setMsg("Visit completed.");
-    setActive(null);
-    setConsultation(null);
-    loadQueue();
+    try {
+      await api.post(`/appointments/${active.id}/complete`, {});
+      setMsg("Visit completed.");
+      toast.success("Visit completed.");
+      setActive(null);
+      setConsultation(null);
+      loadQueue();
+    } catch (e) {
+      toast.error(errorMessage(e, "Could not complete the visit."));
+    }
   };
 
   return (

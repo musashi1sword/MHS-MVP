@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, wsUrl } from "../api/client";
+import { useToast, errorMessage } from "../components/Toast";
 import type { Prescription } from "../api/types";
 
 const NEXT: Record<string, { label: string; to: string }[]> = {
@@ -15,6 +16,7 @@ export default function PharmacyBoard() {
   const [rows, setRows] = useState<Prescription[]>([]);
   const [flash, setFlash] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const toast = useToast();
 
   const load = () => api.get<Prescription[]>("/pharmacy/queue").then(setRows).catch(() => {});
 
@@ -36,8 +38,13 @@ export default function PharmacyBoard() {
   }, []);
 
   const advance = async (rx: Prescription, to: string) => {
-    await api.post(`/pharmacy/prescriptions/${rx.id}/status`, { status: to });
-    load();
+    try {
+      await api.post(`/pharmacy/prescriptions/${rx.id}/status`, { status: to });
+      toast.success(`Rx #${rx.id} → ${to.replace(/_/g, " ")}.`);
+      load();
+    } catch (e) {
+      toast.error(errorMessage(e, `Could not update Rx #${rx.id}.`));
+    }
   };
 
   return (

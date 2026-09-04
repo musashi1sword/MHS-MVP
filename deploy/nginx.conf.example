@@ -1,0 +1,79 @@
+# Nginx config for deploying MHS-MVP behind TLS at 2.29.22.111.
+#
+# You're deploying to a bare IP, not a domain name. Let's Encrypt (and every
+# other public CA) refuses to issue certificates for IP addresses — domain
+# ownership is what they validate — so a trusted cert isn't available here.
+# This config uses a self-signed cert instead: getUserMedia still works,
+# since window.isSecureContext is true for any https:// origin regardless of
+# certificate trust, but every visitor's browser will show a one-time
+# "connection is not private" warning they have to click through, since a
+# self-signed cert can't be validated against a public CA. If a real domain
+# ever gets pointed at this IP, switch to certbot for a trusted cert and drop
+# the warning.
+#
+# Setup:
+#   1. Generate the self-signed cert (once):
+#        sudo mkdir -p /etc/nginx/ssl
+#        sudo openssl req -x509 -nodes -days 825 -newkey rsa:2048 \
+#          -keyout /etc/nginx/ssl/mhs.key -out /etc/nginx/ssl/mhs.crt \
+#          -subj "/CN=2.29.22.111" \
+#          -addext "subjectAltName=IP:2.29.22.111"
+#   2. Run the backend as an ASGI app so WebSocket signalling works, e.g.:
+#        daphne -b 127.0.0.1 -p 8000 config.asgi:application
+#   3. Build the frontend once: (cd frontend && npm run build) and point
+#      FRONTEND_DIST below at the resulting frontend/dist directory.
+#
+# getUserMedia (camera/mic) only works in a secure context, so the site MUST
+# be served over the https:// server block, not the http:// one.
+
+# Redirect everything to HTTPS.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name 2.29.22.111;
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name 2.29.22.111;
+
+    ssl_certificate     /etc/nginx/ssl/mhs.crt;
+    ssl_certificate_key /etc/nginx/ssl/mhs.key;
+
+    # Built frontend (vite build output).
+    root /path/to/MHS_project/frontend/dist;   # FRONTEND_DIST
+    index index.html;
+
+    location / {
+        try_files $uri /index.html;
+    }
+
+    # REST API -> Daphne (ASGI).
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # WebRTC signalling socket -> Daphne (ASGI), with the Upgrade headers a
+    # plain proxy_pass above doesn't send.
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+    }
+}
