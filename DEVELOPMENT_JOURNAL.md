@@ -30,3 +30,11 @@
   - Patient Booking -> Video Visit -> E-Prescription -> Pharmacy Handoff.
 - Confirmed the complete loop is working locally without errors.
 - **Next Step:** Prepare for live investor pitch with Cloudflare Tunnel.
+
+## Entry 5: Production Deployment Prep (Hetzner + TLS)
+
+- Drafted a reverse-proxy/TLS config for a Hetzner deployment at `deploy/nginx.conf.example`: HTTP→HTTPS redirect, static frontend serving, `/api/` and `/ws/` proxied to Daphne (ASGI).
+- Since the plan is to reach the server by IP (`2.29.22.111`) rather than a domain initially, the config uses a self-signed certificate — Let's Encrypt only issues certs for domain names, not bare IPs.
+- Set production values in `backend/.env` (untracked): a generated `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=false`, `DJANGO_ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS` scoped to `2.29.22.111`.
+- **Not yet done / unverified as of this entry:** the server has not actually been provisioned or reached from this environment, Nginx has not been installed or started anywhere, and no DNS record connecting `mwafrikahealth.com` to `2.29.22.111` has been checked or confirmed. Deployment is a real task, not just config — this entry documents the prep work, not a live site.
+- **Next Step:** Actually provision the Hetzner box, apply the Nginx config, verify `https://2.29.22.111` responds, and (if `mwafrikahealth.com` is meant to point here) confirm the DNS A record before treating it as live.
