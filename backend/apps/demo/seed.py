@@ -134,22 +134,28 @@ def seed_demo() -> dict:
         )
 
     # Historical completed appointments so the funnel/speed metrics have live rows.
+    # Dropped and recreated each run (like the same-day slots above) rather than
+    # get_or_create on scheduled_start__date: that date-bucket lookup can miss
+    # across separate runs on different days and silently pile up duplicate rows,
+    # which eventually makes a later run's .get() raise MultipleObjectsReturned.
+    Appointment.objects.filter(
+        patient=patient, provider=provider, clinic=westlands,
+        status=AppointmentStatus.COMPLETED,
+        symptom_note="Follow-up on blood pressure control.",
+    ).delete()
     made = 0
     for d in range(1, 8):
         when = now - timedelta(days=d, hours=2)
-        _, created = Appointment.objects.get_or_create(
+        Appointment.objects.create(
             patient=patient, provider=provider, clinic=westlands,
             status=AppointmentStatus.COMPLETED,
             symptom_note="Follow-up on blood pressure control.",
-            scheduled_start__date=when.date(),
-            defaults={
-                "scheduled_start": when, "mode": "video",
-                "created_at": when - timedelta(minutes=20),
-                "queued_at": when - timedelta(minutes=12),
-                "seen_at": when, "completed_at": when + timedelta(minutes=14),
-            },
+            scheduled_start=when, mode="video",
+            created_at=when - timedelta(minutes=20),
+            queued_at=when - timedelta(minutes=12),
+            seen_at=when, completed_at=when + timedelta(minutes=14),
         )
-        made += int(created)
+        made += 1
 
     return {
         "status": "seeded",
